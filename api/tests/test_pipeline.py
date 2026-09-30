@@ -157,7 +157,47 @@ def test_browser_can_be_disabled(monkeypatch):
     from app.services import crawler
 
     monkeypatch.setattr(crawler, "BROWSER_ENABLED", False)
+    monkeypatch.setattr(crawler, "REMOTE_RENDER", False)
     out = asyncio.run(crawler.render(["https://js.test/page"], ["https://js.test/shot"]))
     assert list(out) == ["https://js.test/page"]
-    assert not out["https://js.test/page"].ok and "browser disabled" in out["https://js.test/page"].error
-    assert not crawler.screenshot_file("https://js.test/shot").exists()
+    assert not out["https://js.test/page"].ok and "no browser" in out["https://js.test/page"].error
+    assert crawler.find_screenshot("https://js.test/shot") is None
+
+
+def test_remote_renderer_parses_pages_and_detects_bot_walls(monkeypatch):
+    import httpx
+    from app.services import crawler
+
+    monkeypatch.setattr(crawler, "_JINA_GAP", 0)
+    body = "Title: Top AI startups\n\nURL Source: https://x.test\n\nMarkdown Content:\n" + "Nimbus Labs raised a Series A. " * 30
+    wall = "Title: Just a moment...\n\nWarning: This page maybe requiring CAPTCHA\n\nMarkdown Content:\nSecurity check"
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        if req.headers.get("x-return-format") == "screenshot":
+            return httpx.Response(200, content=b"PNGDATA", headers={"content-type": "image/png"})
+        return httpx.Response(200, text=wall if "walled" in str(req.url) else body)
+
+    async def go():
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            ok = await crawler._remote_text("https://ok.test/list", client)
+            walled = await crawler._remote_text("https://walled.test/list", client)
+            await crawler._remote_screenshot("https://ok.test/list", client)
+            return ok, walled
+
+    ok, walled = asyncio.run(go())
+    assert ok.ok and ok.title == "Top AI startups" and ok.text.startswith("Nimbus Labs") and ok.via == "remote"
+    assert not walled.ok and "bot protection" in walled.error
+    shot = crawler.find_screenshot("https://ok.test/list")
+    assert shot is not None and shot.suffix == ".png"
+
+
+def test_schema_compiles_for_postgres():
+    from sqlalchemy.dialects import postgresql
+    from sqlalchemy.schema import CreateTable
+    from sqlmodel import SQLModel
+
+    import app.models  # noqa: F401
+
+    ddl = "\n".join(str(CreateTable(t).compile(dialect=postgresql.dialect()))
+                    for t in SQLModel.metadata.sorted_tables)
+    assert "BYTEA" in ddl and "TEXT" in ddl and "JSON" in ddl

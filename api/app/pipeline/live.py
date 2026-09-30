@@ -13,7 +13,7 @@ from .. import llm
 from ..config import BROWSER_ENABLED
 from ..db import engine
 from ..events import emit
-from ..models import Provenance, Record, Run, Source, Workflow, now
+from ..models import Provenance, Record, Run, ScreenshotBlob, Source, Workflow, now
 from ..services import crawler, robots
 from .discover import discover
 from .extract import extract
@@ -100,6 +100,7 @@ class LiveRun:
             if page.ok:
                 row.status, row.fetched_at = "fetched", now()
                 row.markdown_path = str(crawler.page_path(src.url))
+                row.page_text = page.text[:300_000]
                 if page.title and not row.title:
                     row.title = page.title[:300]
             else:
@@ -109,13 +110,18 @@ class LiveRun:
         self.attach_screenshot(src)
 
     def attach_screenshot(self, src: Source) -> None:
-        shot = crawler.screenshot_file(src.url)
-        if not shot.exists():
+        shot = crawler.find_screenshot(src.url)
+        if not shot:
             return
         with Session(engine) as s:
             row = s.get(Source, src.id)
+            if row.screenshot_path == shot.name:
+                return
             row.screenshot_path = shot.name
             s.add(row)
+            if not s.get(ScreenshotBlob, shot.name):
+                s.add(ScreenshotBlob(name=shot.name, data=shot.read_bytes(),
+                                     content_type="image/png" if shot.suffix == ".png" else "image/jpeg"))
             s.commit()
 
     async def process(self, sources: list[Source], iteration: int) -> None:

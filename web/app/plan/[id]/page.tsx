@@ -5,6 +5,19 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api, FIELD_TYPES, type Intent, type IntentField, type Workflow } from "@/lib/api";
 
+const REGIONS: [string, string][] = [
+  ["wt-wt", "Worldwide"],
+  ["in-en", "India"],
+  ["us-en", "United States"],
+  ["uk-en", "United Kingdom"],
+  ["ca-en", "Canada"],
+  ["au-en", "Australia"],
+  ["sg-en", "Singapore"],
+  ["de-de", "Germany"],
+  ["fr-fr", "France"],
+  ["ae-en", "UAE"],
+];
+
 const input =
   "w-full rounded-md border border-line bg-bg px-2 py-1.5 text-sm outline-none focus:border-accent";
 
@@ -190,15 +203,28 @@ export default function PlanPage() {
         <Section title="Filters" hint="Every row must satisfy these. Press Enter to add one.">
           <ChipEditor values={intent.filters} onChange={(filters) => set({ filters })} placeholder="e.g. founded after 2020" />
         </Section>
-        <Section title="How many rows?" hint="Scout keeps searching until it reaches this or runs out of sources.">
-          <input
-            type="number"
-            min={5}
-            max={50}
-            className={input}
-            value={intent.target_count}
-            onChange={(e) => set({ target_count: Number(e.target.value) })}
-          />
+        <Section title="How many rows, and where?" hint="Scout keeps searching until it reaches the count. The region steers web search.">
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              type="number"
+              min={5}
+              max={50}
+              className={input}
+              value={intent.target_count}
+              onChange={(e) => set({ target_count: Number(e.target.value) })}
+              aria-label="Target row count"
+            />
+            <select
+              className={input}
+              value={intent.region ?? "wt-wt"}
+              onChange={(e) => set({ region: e.target.value })}
+              aria-label="Search region"
+            >
+              {REGIONS.map(([code, label]) => (
+                <option key={code} value={code}>{label}</option>
+              ))}
+            </select>
+          </div>
         </Section>
       </div>
 

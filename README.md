@@ -2,7 +2,9 @@
 
 **Describe the data you need in plain English. Scout designs the collection workflow, gathers data from permitted sources, cleans and deduplicates it, and proves every single value with a verbatim quote from its source.**
 
-Code Cubicle 6.0 · PS 01 (AI-Powered Data Intelligence Platform) · built solo · runs entirely on free tools (Groq free tier, DuckDuckGo search, SQLite).
+Code Cubicle 6.0 · PS 01 (AI-Powered Data Intelligence Platform) · built solo · runs entirely on free tools (Groq free tier, free web search, SQLite/Postgres).
+
+**Live app: https://scout-online.vercel.app**
 
 > *"Find AI startups in Bangalore with their funding stage, founding year, founders and website"*
 > → a plan in ~3 s → 25 sources discovered → 16 pages read → **59 clean rows in about a minute**, 15 unproven values automatically dropped, every cell clickable to its evidence.
@@ -81,18 +83,20 @@ Notes
 
 ## Deploy (free)
 
-**Backend → Render (free web service).** `render.yaml` at the repo root sets everything up.
+**Backend → Render (free web service + free Postgres).** `render.yaml` at the repo root sets up both.
 1. render.com → sign in with GitHub → **New → Blueprint** → pick this repo → Apply.
-2. When asked, paste `GROQ_API_KEY`. The blueprint already sets `PYTHON_VERSION=3.12.7`, `SCOUT_BROWSER=off` and `CORS_ORIGIN_REGEX=https://.*\.vercel\.app`.
+2. When asked, paste `GROQ_API_KEY`. The blueprint creates the database and sets `DATABASE_URL`, `PYTHON_VERSION=3.12.7`, `SCOUT_BROWSER=off`, `SCOUT_REMOTE_RENDER=on` and `CORS_ORIGIN_REGEX=https://.*\.vercel\.app`.
 3. After the build, check `https://<service>.onrender.com/api/health`.
 
-The free instance has 512 MB of RAM, so the headless browser is off there (`SCOUT_BROWSER=off`): JavaScript-only pages are skipped and screenshots are not taken, but every value still has its verbatim quote in Click-to-Proof. The instance sleeps after ~15 minutes idle (the first request takes ~1 minute to wake it) and its SQLite database resets on redeploys.
+How the hosted version matches a laptop:
+- **Search:** the planner picks a search region (e.g. `in-en`) and search uses fixed engines (`SEARCH_ENGINES`), so a US server gets the same India results as an Indian laptop.
+- **JavaScript pages and screenshots:** the 512 MB free instance can't run a browser, so these go through the free Jina Reader API (`SCOUT_REMOTE_RENDER=on`; set `JINA_API_KEY` for higher limits). Sites behind Cloudflare bot checks may still refuse cloud servers.
+- **Persistence:** runs, evidence text and screenshots are stored in Postgres, so nothing is lost when the free instance restarts. (Render's free Postgres lasts 30 days; Neon or Supabase free Postgres work via `DATABASE_URL` too.)
+- **Sleeping:** the free instance sleeps after ~15 idle minutes. The frontend wakes it automatically and waits; a free uptime monitor pinging `/api/health` every 5 minutes keeps it awake.
 
 **Frontend → Vercel (Hobby, free).** Import the repo → Root Directory **`web`** → env var `NEXT_PUBLIC_API_URL` = the Render URL (no trailing slash) → Deploy.
 
-`api/Dockerfile` also runs the full version (browser included) on any Docker host with ~2 GB of RAM.
-
-For the live stage demo, run locally (browser and screenshots on) and present with **Replay**.
+`api/Dockerfile` runs the full version (local browser included) on any Docker host with ~2 GB of RAM.
 
 ## Tests
 

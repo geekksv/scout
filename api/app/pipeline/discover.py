@@ -79,7 +79,7 @@ async def discover(
     topic = topic_terms(intent)
     for q in queries:
         emit(run_id, "log", "discover", level="info", message=f'Searching: "{q}"')
-        results = await search(q, RESULTS_PER_QUERY)
+        results = await search(q, RESULTS_PER_QUERY, intent.region)
         if not results:
             emit(run_id, "log", "discover", level="warn", message=f'No results for "{q}"')
         for rank, r in enumerate(results):

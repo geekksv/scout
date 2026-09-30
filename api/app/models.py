@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from sqlalchemy import JSON, Column
+from sqlalchemy import JSON, Column, LargeBinary, Text
 from sqlmodel import Field, SQLModel
 
 
@@ -45,6 +45,8 @@ class Source(SQLModel, table=True):
     status: str = "pending"  # pending | fetched | blocked | failed
     screenshot_path: Optional[str] = None
     markdown_path: Optional[str] = None
+    # Kept in the database too, so evidence survives hosts with ephemeral disks.
+    page_text: str = Field(default="", sa_column=Column(Text, default=""))
     fetched_at: Optional[datetime] = None
 
 
@@ -75,3 +77,10 @@ class Event(SQLModel, table=True):
     type: str  # run | step | log | row | stats
     step: Optional[str] = None
     payload: dict = json_col()
+
+
+class ScreenshotBlob(SQLModel, table=True):
+    """Screenshot bytes, so Click-to-Proof images survive redeploys on ephemeral hosts."""
+    name: str = Field(primary_key=True)
+    content_type: str = "image/jpeg"
+    data: bytes = Field(sa_column=Column(LargeBinary))

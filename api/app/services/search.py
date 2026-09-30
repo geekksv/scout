@@ -8,7 +8,7 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from ddgs import DDGS
 
-from ..config import CACHE_DIR
+from ..config import CACHE_DIR, SEARCH_ENGINES
 
 log = logging.getLogger("scout.search")
 
@@ -33,16 +33,21 @@ def normalize_url(url: str) -> str:
     return urlunsplit((p.scheme.lower() or "https", host, path, urlencode(query), ""))
 
 
-async def search(query: str, max_results: int = 10) -> list[dict]:
-    """[{title, url, snippet}] for a query; [] if the search engines refuse."""
-    key = hashlib.sha256(f"{query}|{max_results}".encode()).hexdigest()
+async def search(query: str, max_results: int = 10, region: str = "wt-wt") -> list[dict]:
+    """[{title, url, snippet}] for a query; [] if the search engines refuse.
+
+    The region matters: without it, a cloud server's results follow the server's
+    country rather than the request's.
+    """
+    key = hashlib.sha256(f"{query}|{max_results}|{region}|{SEARCH_ENGINES}".encode()).hexdigest()
     path = _CACHE / f"{key}.json"
     if path.exists():
         return json.loads(path.read_text(encoding="utf-8"))
 
     async with _lock:
         try:
-            raw = await asyncio.to_thread(lambda: DDGS().text(query, max_results=max_results))
+            raw = await asyncio.to_thread(lambda: DDGS().text(
+                query, max_results=max_results, region=region, backend=SEARCH_ENGINES))
         except Exception as e:  # ddgs raises its own types for rate limits and timeouts
             log.warning("search failed for %r: %s", query, e)
             return []

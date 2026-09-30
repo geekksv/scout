@@ -13,7 +13,18 @@ SCREENSHOT_DIR = DATA_DIR / "screenshots"
 for d in (DATA_DIR, CACHE_DIR, SCREENSHOT_DIR):
     d.mkdir(parents=True, exist_ok=True)
 
-DB_URL = f"sqlite:///{(DATA_DIR / 'scout.db').as_posix()}"
+def _db_url() -> str:
+    """DATABASE_URL (e.g. Render/Neon Postgres) when set, else a local SQLite file."""
+    url = os.getenv("DATABASE_URL", "")
+    if not url:
+        return f"sqlite:///{(DATA_DIR / 'scout.db').as_posix()}"
+    for prefix in ("postgres://", "postgresql://"):
+        if url.startswith(prefix):
+            return "postgresql+psycopg://" + url[len(prefix):]
+    return url
+
+
+DB_URL = _db_url()
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 # Big model for planning/verification, fast model for bulk extraction.
@@ -22,6 +33,13 @@ GROQ_FAST_MODEL = os.getenv("GROQ_FAST_MODEL", "qwen/qwen3.8-27b")
 LLM_CONCURRENCY = int(os.getenv("LLM_CONCURRENCY", "3"))
 # Headless browser for JS pages and screenshots. Turn off on small hosts (e.g. 512 MB free tiers).
 BROWSER_ENABLED = os.getenv("SCOUT_BROWSER", "on").lower() not in ("off", "0", "false", "no")
+# Remote renderer (Jina Reader) for JS pages and screenshots when there is no local
+# browser. Free without a key (20 requests/min); JINA_API_KEY raises the limit.
+REMOTE_RENDER = os.getenv("SCOUT_REMOTE_RENDER", "on").lower() not in ("off", "0", "false", "no")
+JINA_API_KEY = os.getenv("JINA_API_KEY", "")
+
+# Search engines behind ddgs. "auto" mixes in Wikipedia and others that pad results.
+SEARCH_ENGINES = os.getenv("SEARCH_ENGINES", "duckduckgo,yahoo,brave,bing")
 
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3100").split(",")
 # e.g. https://.*\.vercel\.app so every Vercel preview deployment can reach the API

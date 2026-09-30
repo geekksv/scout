@@ -1,4 +1,10 @@
-# Render Blueprint: free Python web service for the Scout API.
+# Render Blueprint: free Python web service + free Postgres for the Scout API.
+databases:
+  - name: scout-db
+    plan: free
+    databaseName: scout
+    user: scout
+
 services:
   - type: web
     name: scout-api
@@ -13,7 +19,13 @@ services:
         value: 3.12.7
       - key: GROQ_API_KEY
         sync: false          # you paste the key in the Render dashboard
+      - key: DATABASE_URL    # runs, evidence and screenshots survive redeploys
+        fromDatabase:
+          name: scout-db
+          property: connectionString
       - key: SCOUT_BROWSER
-        value: "off"         # 512 MB free instance: no headless browser
+        value: "off"         # 512 MB instance: JS pages + screenshots go through the remote renderer
+      - key: SCOUT_REMOTE_RENDER
+        value: "on"
       - key: CORS_ORIGIN_REGEX
         value: https://.*\.vercel\.app

@@ -18,6 +18,7 @@ export interface Intent {
   target_count: number;
   queries: string[];
   blocked_domains: string[];
+  region: string;
 }
 
 export const FIELD_TYPES = ["string", "integer", "number", "url", "email", "date", "boolean"] as const;

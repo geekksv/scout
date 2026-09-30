@@ -41,6 +41,13 @@ class Intent(BaseModel):
     target_count: int = 20
     queries: list[str] = Field(min_length=1)
     blocked_domains: list[str] = []
+    region: str = "wt-wt"  # search region, e.g. in-en, us-en, uk-en; wt-wt = no region
+
+    @field_validator("region")
+    @classmethod
+    def region_code(cls, v: str) -> str:
+        v = (v or "").strip().lower()
+        return v if re.fullmatch(r"[a-z]{2}-[a-z]{2}", v) else "wt-wt"
 
     @field_validator("target_count")
     @classmethod
@@ -72,7 +79,8 @@ Given a user's request, design a collection plan. Reply with JSON only, matching
   "fields": [{{"name": "snake_case", "type": one of {FIELD_TYPES}, "required": bool, "description": "what to extract"}}],
   "filters": ["conditions every row must satisfy, taken from the request"],
   "target_count": integer number of rows wanted (default 20 if unspecified),
-  "queries": ["6 diverse web search queries likely to surface pages listing or describing matching entities"]
+  "queries": ["6 diverse web search queries likely to surface pages listing or describing matching entities"],
+  "region": "search region code for where the entities are, e.g. in-en (India), us-en, uk-en, de-de; wt-wt if global"
 }}
 Rules:
 - The FIRST field must be the entity's name/title (it identifies a row).

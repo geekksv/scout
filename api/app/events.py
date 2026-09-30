@@ -7,12 +7,13 @@ SSE subscribers. A late subscriber first receives the history, then live events.
 import asyncio
 from collections import defaultdict
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from typing import AsyncIterator
 
 from sqlmodel import Session, select
 
 from .db import engine
-from .models import Event, now
+from .models import Event
 
 TERMINAL_RUN_STATUSES = {"done", "failed", "cancelled"}
 
@@ -36,7 +37,7 @@ def emit(run_id: int, type: str, step: str | None = None, **payload) -> dict:
     ch = _channels[run_id]
     evt = {
         "seq": len(ch.history),
-        "ts": now().isoformat(),
+        "ts": datetime.now(timezone.utc).isoformat(),
         "type": type,
         "step": step,
         "payload": payload,
@@ -58,7 +59,8 @@ def _load_history(run_id: int) -> list[dict]:
     with Session(engine) as s:
         rows = s.exec(select(Event).where(Event.run_id == run_id).order_by(Event.seq)).all()
     return [
-        {"seq": e.seq, "ts": e.ts.isoformat(), "type": e.type, "step": e.step, "payload": e.payload}
+        {"seq": e.seq, "ts": e.ts.replace(tzinfo=timezone.utc).isoformat(), "type": e.type,
+         "step": e.step, "payload": e.payload}
         for e in rows
     ]
 

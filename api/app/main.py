@@ -1,21 +1,22 @@
 import json
 import logging
+from pathlib import Path
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 
 from fastapi import Depends, FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, ValidationError
 from sqlmodel import Session, col, select
 from sse_starlette.sse import EventSourceResponse
 
 from . import llm
-from .config import CORS_ORIGIN_REGEX, CORS_ORIGINS, GROQ_API_KEY, GROQ_FAST_MODEL, GROQ_MODEL, SCREENSHOT_DIR
-from .db import engine, get_session, init_db
+from .config import BROWSER_ENABLED, CORS_ORIGIN_REGEX, CORS_ORIGINS, REMOTE_RENDER, GROQ_API_KEY, GROQ_FAST_MODEL, GROQ_MODEL, SCREENSHOT_DIR
+from .db import IS_SQLITE, engine, get_session, init_db
 from .services import evidence, export
 from .events import emit as _emit, subscribe
-from .models import Provenance, Record, Run, Source, Workflow
+from .models import Provenance, Record, Run, ScreenshotBlob, Source, Workflow
 from .pipeline import orchestrator
 from .pipeline.demo import create_demo_workflow, run_demo
 from .pipeline.live import run_live
@@ -47,12 +48,30 @@ app.add_middleware(
     CORSMiddleware, allow_origins=CORS_ORIGINS, allow_origin_regex=CORS_ORIGIN_REGEX,
     allow_methods=["*"], allow_headers=["*"],
 )
-app.mount("/files/screenshots", StaticFiles(directory=SCREENSHOT_DIR), name="screenshots")
+
+
+@app.get("/files/screenshots/{name}")
+def screenshot(name: str, s: Session = Depends(get_session)):
+    """From disk when present, else from the database (hosts with ephemeral disks)."""
+    path = SCREENSHOT_DIR / Path(name).name
+    if path.is_file():
+        return FileResponse(path)
+    blob = s.get(ScreenshotBlob, Path(name).name)
+    if not blob:
+        raise HTTPException(404, "Screenshot not found")
+    return Response(blob.data, media_type=blob.content_type,
+                    headers={"Cache-Control": "public, max-age=86400"})
 
 
 @app.get("/api/health")
 def health():
-    return {"ok": True, "llm": {"provider": "groq", "model": GROQ_MODEL, "fast_model": GROQ_FAST_MODEL, "configured": bool(GROQ_API_KEY)}}
+    return {
+        "ok": True,
+        "llm": {"provider": "groq", "model": GROQ_MODEL, "fast_model": GROQ_FAST_MODEL,
+                "configured": bool(GROQ_API_KEY)},
+        "database": "sqlite" if IS_SQLITE else "postgres",
+        "renderer": "browser" if BROWSER_ENABLED else ("remote" if REMOTE_RENDER else "none"),
+    }
 
 
 @app.get("/api/graph")
@@ -246,7 +265,7 @@ def record_provenance(record_id: int, s: Session = Depends(get_session)):
         by_field.setdefault(p.field, []).append({
             "value": p.value,
             "quote": p.quote,
-            "context": evidence.locate(p.quote, src.markdown_path, src.snippet),
+            "context": evidence.locate(p.quote, src.markdown_path, src.page_text or src.snippet),
             "source": {k: v for k, v in _source_out(src).items()
                        if k in ("id", "url", "domain", "title", "fetched_at", "screenshot_url")},
         })
