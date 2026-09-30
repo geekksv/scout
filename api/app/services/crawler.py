@@ -14,7 +14,7 @@ from pathlib import Path
 import httpx
 import trafilatura
 
-from ..config import CACHE_DIR, SCREENSHOT_DIR
+from ..config import BROWSER_ENABLED, CACHE_DIR, SCREENSHOT_DIR
 from .robots import USER_AGENT
 
 log = logging.getLogger("scout.crawler")
@@ -143,6 +143,8 @@ def screenshot_file(url: str) -> Path:
 
 async def render(urls_needing_text: list[str], urls_to_screenshot: list[str]) -> dict[str, Page]:
     """Browser pass. Returns rendered pages; screenshots land in SCREENSHOT_DIR."""
+    if not BROWSER_ENABLED:
+        return {u: Page(url=u, error="needs JavaScript (browser disabled on this server)") for u in urls_needing_text}
     shots = {u: screenshot_file(u) for u in urls_to_screenshot if not screenshot_file(u).exists()}
     urls = list(dict.fromkeys([*urls_needing_text, *shots]))
     if not urls:

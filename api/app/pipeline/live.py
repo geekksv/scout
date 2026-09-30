@@ -10,6 +10,7 @@ import asyncio
 from sqlmodel import Session
 
 from .. import llm
+from ..config import BROWSER_ENABLED
 from ..db import engine
 from ..events import emit
 from ..models import Provenance, Record, Run, Source, Workflow, now
@@ -142,7 +143,7 @@ class LiveRun:
         # 2. Browser pass (JS pages + screenshots) runs while extraction starts.
         browser_task = asyncio.create_task(crawler.render(
             [s.url for s in needs_browser], [s.url for s, _ in fetched][:SCREENSHOTS_PER_PASS]))
-        if needs_browser:
+        if needs_browser and BROWSER_ENABLED:
             self.log("fetch", f"Rendering {len(needs_browser)} JavaScript-heavy pages in a browser")
 
         await asyncio.gather(*(self.handle_page(s, p) for s, p in fetched))

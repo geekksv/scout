@@ -1,0 +1,19 @@
+# Render Blueprint: free Python web service for the Scout API.
+services:
+  - type: web
+    name: scout-api
+    runtime: python
+    plan: free
+    rootDir: api
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: GROQ_API_KEY
+        sync: false          # you paste the key in the Render dashboard
+      - key: SCOUT_BROWSER
+        value: "off"         # 512 MB free instance: no headless browser
+      - key: CORS_ORIGIN_REGEX
+        value: https://.*\.vercel\.app

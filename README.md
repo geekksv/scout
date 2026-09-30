@@ -81,22 +81,18 @@ Notes
 
 ## Deploy (free)
 
-**Backend → Hugging Face Spaces (Docker, free CPU tier).** Scout needs a real browser for JavaScript pages and screenshots, and Spaces gives enough memory for one; most other free tiers (512 MB) do not.
-1. Create a Space at huggingface.co/new-space → SDK **Docker** → Blank → Public.
-2. Upload the contents of `api/` (with `Dockerfile`) to the Space. The Space's `README.md` must start with:
-   ```yaml
-   ---
-   title: Scout API
-   sdk: docker
-   app_port: 7860
-   ---
-   ```
-3. Space → Settings → **Secrets**: `GROQ_API_KEY`. **Variables**: `CORS_ORIGIN_REGEX` = `https://.*\.vercel\.app`.
-4. After the build, check `https://<user>-<space>.hf.space/api/health`.
+**Backend → Render (free web service).** `render.yaml` at the repo root sets everything up.
+1. render.com → sign in with GitHub → **New → Blueprint** → pick this repo → Apply.
+2. When asked, paste `GROQ_API_KEY`. The blueprint already sets `PYTHON_VERSION=3.12.7`, `SCOUT_BROWSER=off` and `CORS_ORIGIN_REGEX=https://.*\.vercel\.app`.
+3. After the build, check `https://<service>.onrender.com/api/health`.
 
-**Frontend → Vercel (Hobby, free).** Import the GitHub repo → Root Directory **`web`** → env var `NEXT_PUBLIC_API_URL` = your Space URL → Deploy.
+The free instance has 512 MB of RAM, so the headless browser is off there (`SCOUT_BROWSER=off`): JavaScript-only pages are skipped and screenshots are not taken, but every value still has its verbatim quote in Click-to-Proof. The instance sleeps after ~15 minutes idle (the first request takes ~1 minute to wake it) and its SQLite database resets on redeploys.
 
-Notes: the free Space sleeps after inactivity (the first request wakes it) and its SQLite database resets on restart. That's fine for judging, but for the live stage demo, run locally and use **Replay**.
+**Frontend → Vercel (Hobby, free).** Import the repo → Root Directory **`web`** → env var `NEXT_PUBLIC_API_URL` = the Render URL (no trailing slash) → Deploy.
+
+`api/Dockerfile` also runs the full version (browser included) on any Docker host with ~2 GB of RAM.
+
+For the live stage demo, run locally (browser and screenshots on) and present with **Replay**.
 
 ## Tests
 

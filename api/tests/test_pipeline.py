@@ -151,3 +151,13 @@ def test_export_formats_and_diff():
 def test_same_text_aliases_and_filler(a, b, same):
     from app.pipeline.merge import same_text
     assert same_text(a, b) is same
+
+
+def test_browser_can_be_disabled(monkeypatch):
+    from app.services import crawler
+
+    monkeypatch.setattr(crawler, "BROWSER_ENABLED", False)
+    out = asyncio.run(crawler.render(["https://js.test/page"], ["https://js.test/shot"]))
+    assert list(out) == ["https://js.test/page"]
+    assert not out["https://js.test/page"].ok and "browser disabled" in out["https://js.test/page"].error
+    assert not crawler.screenshot_file("https://js.test/shot").exists()
