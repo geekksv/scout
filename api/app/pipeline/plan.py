@@ -87,4 +87,11 @@ async def make_plan(prompt: str, usage: llm.Usage | None = None) -> Intent:
     # Without today's date the model anchors queries on its training year.
     system = f"{SYSTEM}\n- Today is {date.today():%d %B %Y}; use the current year when a year helps."
     data = await llm.complete_json(system, f"Request: {prompt}", usage=usage, temperature=0.2)
-    return Intent.model_validate(data)
+    intent = Intent.model_validate(data)
+    # Models often mark every field required despite the prompt, which silently
+    # empties the dataset (few pages state every field). Only the identifying
+    # field is required in a generated plan; people can still require more on
+    # the plan screen, which goes through the Intent model directly.
+    for f in intent.fields[1:]:
+        f.required = False
+    return intent

@@ -91,3 +91,24 @@ def test_relevance_filter_drops_generic_search_padding():
         {"title": "Bengaluru - Wikipedia", "snippet": "capital of Karnataka", "url": "https://en.wikipedia.org/wiki/Bengaluru"},
     ):
         assert not is_relevant(junk, topic), junk["title"]
+
+
+def test_generated_plan_only_requires_identifying_field(monkeypatch):
+    from app import llm
+    from app.pipeline import plan as plan_mod
+
+    async def fake_llm(*_a, **_k):
+        return {"entity": "AI startup", "queries": ["q"], "fields": [
+            {"name": "name", "type": "string", "required": True},
+            {"name": "funding_stage", "type": "string", "required": True},
+            {"name": "website", "type": "url", "required": True},
+        ]}
+
+    monkeypatch.setattr(llm, "complete_json", fake_llm)
+    intent = asyncio.run(plan_mod.make_plan("anything"))
+    assert [f.required for f in intent.fields] == [True, False, False]
+
+    # A person's choice on the plan screen is kept.
+    edited = Intent.model_validate({**intent.model_dump(), "fields": [
+        {"name": "name"}, {"name": "website", "type": "url", "required": True}]})
+    assert [f.required for f in edited.fields] == [True, True]
