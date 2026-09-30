@@ -5,6 +5,7 @@ Wi-Fi. Rows keep their original record ids, so Click-to-Proof still works.
 """
 
 import asyncio
+import os
 from datetime import datetime
 
 from sqlmodel import Session, select
@@ -14,7 +15,8 @@ from ..events import emit
 from ..models import Event, Run
 from .orchestrator import set_progress, update_run
 
-REPLAY_SECONDS = 40  # the whole replay fits a demo slot, however long the real run took
+# The whole replay fits a demo slot, however long the real run took.
+REPLAY_SECONDS = float(os.getenv("SCOUT_REPLAY_SECONDS", "40"))
 MIN_GAP = 0.02
 
 

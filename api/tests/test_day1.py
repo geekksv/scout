@@ -83,3 +83,21 @@ def _wait(client, run_id, timeout=60):
         assert time.time() < deadline, "run did not finish"
         time.sleep(0.3)
     return run
+
+
+def test_old_database_gets_new_columns(tmp_path, monkeypatch):
+    import sqlite3
+
+    from sqlalchemy import create_engine, inspect
+
+    from app import db as db_mod
+
+    path = tmp_path / "old.db"
+    con = sqlite3.connect(path)
+    con.execute("CREATE TABLE source (id INTEGER PRIMARY KEY, run_id INTEGER, url TEXT, domain TEXT)")
+    con.commit()
+    con.close()
+    monkeypatch.setattr(db_mod, "engine", create_engine(f"sqlite:///{path.as_posix()}"))
+    db_mod.init_db()
+    cols = {c["name"] for c in inspect(db_mod.engine).get_columns("source")}
+    assert {"page_text", "snippet", "screenshot_path", "robots_allowed"} <= cols
