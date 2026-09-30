@@ -1,38 +1,49 @@
 @import "tailwindcss";
 
+/* Scout palette: ink + teal ("verified") with sky as the second brand hue. */
 :root {
-  --bg: #f7f7f5;
+  --bg: #f5f7fb;
   --panel: #ffffff;
-  --panel-2: #f0f0ec;
-  --border: #e3e3de;
-  --text: #17171a;
-  --muted: #6b6b73;
-  --accent: #5b5bd6;
-  --accent-soft: #ececfb;
-  --ok: #1f9d62;
-  --ok-soft: #e3f5ec;
-  --warn: #c7771b;
-  --warn-soft: #fbf0e1;
-  --err: #d23c3c;
-  --err-soft: #fbe6e6;
+  --panel-2: #eef2f8;
+  --border: #dfe5ee;
+  --text: #0b1324;
+  --muted: #5a6679;
+  --accent: #0d9488;
+  --accent-2: #0284c7;
+  --accent-fg: #ffffff;
+  --accent-soft: #dcf7f3;
+  --ok: #059669;
+  --ok-soft: #dcfaee;
+  --warn: #c2710c;
+  --warn-soft: #fdf1dc;
+  --err: #dc2626;
+  --err-soft: #fde8e8;
+  --glow-1: rgba(13, 148, 136, 0.14);
+  --glow-2: rgba(2, 132, 199, 0.12);
+  --grid: rgba(11, 19, 36, 0.05);
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0c0c0f;
-    --panel: #141418;
-    --panel-2: #1b1b21;
-    --border: #2a2a32;
-    --text: #ececf1;
-    --muted: #8d8d99;
-    --accent: #8b8bff;
-    --accent-soft: #23234a;
-    --ok: #3ccf8e;
-    --ok-soft: #10301f;
-    --warn: #f0a445;
-    --warn-soft: #33250f;
-    --err: #ff6b6b;
-    --err-soft: #3a1515;
+    --bg: #060a13;
+    --panel: #0c1320;
+    --panel-2: #121b2c;
+    --border: #1d2a40;
+    --text: #e7ecf5;
+    --muted: #8795ad;
+    --accent: #2dd4bf;
+    --accent-2: #38bdf8;
+    --accent-fg: #03201c;
+    --accent-soft: #0b2f2c;
+    --ok: #34d399;
+    --ok-soft: #0b2b20;
+    --warn: #fbbf24;
+    --warn-soft: #2f230b;
+    --err: #f87171;
+    --err-soft: #321414;
+    --glow-1: rgba(45, 212, 191, 0.13);
+    --glow-2: rgba(56, 189, 248, 0.11);
+    --grid: rgba(231, 236, 245, 0.045);
   }
 }
 
@@ -44,6 +55,8 @@
   --color-fg: var(--text);
   --color-muted: var(--muted);
   --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
+  --color-accent-fg: var(--accent-fg);
   --color-accent-soft: var(--accent-soft);
   --color-ok: var(--ok);
   --color-ok-soft: var(--ok-soft);
@@ -61,6 +74,41 @@ body {
   font-family: var(--font-geist-sans), system-ui, sans-serif;
 }
 
+/* Soft brand glows + a faint grid behind every page. */
+.app-backdrop {
+  background:
+    radial-gradient(900px 480px at 12% -10%, var(--glow-1), transparent 60%),
+    radial-gradient(800px 460px at 95% 0%, var(--glow-2), transparent 60%),
+    linear-gradient(var(--grid) 1px, transparent 1px) 0 0 / 32px 32px,
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0 / 32px 32px,
+    var(--bg);
+  background-attachment: fixed;
+}
+
+.brand-gradient {
+  background-image: linear-gradient(100deg, var(--accent), var(--accent-2));
+}
+.brand-text {
+  background-image: linear-gradient(100deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+/* Gradient hairline border for the hero prompt card. */
+.brand-ring {
+  border: 1px solid transparent;
+  background:
+    linear-gradient(var(--panel), var(--panel)) padding-box,
+    linear-gradient(120deg, color-mix(in srgb, var(--accent) 70%, transparent), var(--border) 40%, color-mix(in srgb, var(--accent-2) 70%, transparent)) border-box;
+}
+
+.card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 0.9rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px -12px rgba(0, 0, 0, 0.12);
+}
+
 @keyframes pulse-ring {
   0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 45%, transparent); }
   100% { box-shadow: 0 0 0 10px transparent; }
@@ -72,5 +120,11 @@ body {
   to { background: transparent; }
 }
 .row-new { animation: row-in 1.6s ease-out; }
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
+}
+.shimmer { animation: shimmer 1.6s ease-in-out infinite; }
 
 .react-flow__attribution { display: none; }

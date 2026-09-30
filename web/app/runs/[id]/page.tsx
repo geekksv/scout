@@ -130,13 +130,13 @@ export default function RunPage() {
       {graph ? (
         <RunGraph graph={graph} steps={run.steps} loop={run.loop} />
       ) : (
-        <div className="h-[230px] animate-pulse rounded-xl border border-line bg-panel" />
+        <div className="h-[230px] animate-pulse card" />
       )}
 
       <StatsBar stats={run.stats} />
 
       {diff?.previous_run_id && (
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border border-line bg-panel px-4 py-2 text-sm">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 card px-4 py-2 text-sm">
           <span className="text-muted">
             Compared with <Link href={`/runs/${diff.previous_run_id}`} className="text-accent hover:underline">run #{diff.previous_run_id}</Link>:
           </span>
@@ -166,7 +166,7 @@ export default function RunPage() {
       )}
 
       <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
-        <div className="min-w-0 overflow-hidden rounded-xl border border-line bg-panel">
+        <div className="min-w-0 overflow-hidden card">
           <div className="flex items-center gap-1 border-b border-line px-2 py-1.5">
             {(["dataset", "sources"] as const).map((t) => (
               <button

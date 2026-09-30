@@ -1,6 +1,7 @@
 """Discover: run the plan's search queries, rank candidate pages, check robots.txt."""
 
 import asyncio
+import re
 from collections import defaultdict
 from urllib.parse import urlsplit
 
@@ -33,6 +34,37 @@ def is_blocked(domain: str, blocked: set[str]) -> bool:
     return any(domain == b or domain.endswith("." + b) for b in blocked)
 
 
+_GENERIC = {
+    "in", "of", "on", "at", "to", "by", "an", "or", "is", "as", "it", "be", "we", "us",
+    "the", "and", "for", "with", "from", "that", "this", "are", "based", "located", "operates",
+    "operating", "sector", "industry", "company", "companies", "list", "top", "best", "find",
+    "their", "who", "which", "have", "has", "all", "any", "more", "than", "into", "other",
+}
+_ALIASES = {"bengaluru": "bangalore", "bombay": "mumbai", "gurugram": "gurgaon", "madras": "chennai"}
+
+
+def _stems(text: str) -> set[str]:
+    out = set()
+    for t in re.findall(r"[a-z0-9]+", text.lower()):
+        t = _ALIASES.get(t, t)
+        if len(t) >= 2 and t not in _GENERIC:
+            out.add(t[:-1] if len(t) > 3 and t.endswith("s") else t)
+    return out
+
+
+def topic_terms(intent: Intent) -> set[str]:
+    return _stems(" ".join([intent.entity, *intent.filters]))
+
+
+def is_relevant(result: dict, topic: set[str]) -> bool:
+    """Search engines pad results with generic pages (dictionaries, 'List' articles).
+    Keep a result only if it mentions at least two of the request's key terms."""
+    if not topic:
+        return True
+    found = _stems(f"{result.get('title', '')} {result.get('snippet', '')} {result.get('url', '')}")
+    return len(topic & found) >= min(2, len(topic))
+
+
 async def discover(
     run_id: int, intent: Intent, queries: list[str], seen_urls: set[str], stats: dict
 ) -> list[Source]:
@@ -43,7 +75,8 @@ async def discover(
     hits: dict[str, int] = defaultdict(int)
     best_rank: dict[str, int] = {}
     meta: dict[str, dict] = {}
-    skipped_blocked = 0
+    skipped_blocked = skipped_irrelevant = 0
+    topic = topic_terms(intent)
     for q in queries:
         emit(run_id, "log", "discover", level="info", message=f'Searching: "{q}"')
         results = await search(q, RESULTS_PER_QUERY)
@@ -55,6 +88,9 @@ async def discover(
                 continue
             if is_blocked(domain_of(url), blocked):
                 skipped_blocked += 1
+                continue
+            if not is_relevant(r, topic):
+                skipped_irrelevant += 1
                 continue
             hits[url] += 1
             best_rank[url] = min(best_rank.get(url, rank), rank)
@@ -75,6 +111,9 @@ async def discover(
     if skipped_blocked:
         emit(run_id, "log", "discover", level="info",
              message=f"Skipped {skipped_blocked} results from blocked or login-only sites")
+    if skipped_irrelevant:
+        emit(run_id, "log", "discover", level="info",
+             message=f"Skipped {skipped_irrelevant} off-topic results")
 
     async with robots.new_client() as client:
         allowed = await asyncio.gather(*(robots.is_allowed(u, client) for u in chosen))

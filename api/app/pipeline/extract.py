@@ -104,7 +104,7 @@ async def extract(page_text: str, url: str, intent: Intent, usage: llm.Usage) ->
     system = SYSTEM.format(entity=intent.entity, filters="; ".join(intent.filters) or "none", fields=fields)
     data = await llm.complete_json(
         system, f"Page URL: {url}\n\nPage content:\n{text}",
-        model=GROQ_FAST_MODEL, usage=usage, max_tokens=4096,
+        model=GROQ_FAST_MODEL, usage=usage, max_tokens=6000,
     )
     raw = data.get("records") if isinstance(data, dict) else None
     if not isinstance(raw, list):

@@ -11,7 +11,19 @@ import {
   type Node,
   type NodeProps,
 } from "@xyflow/react";
-import { Check, Loader2, X } from "lucide-react";
+import {
+  BadgeCheck,
+  Check,
+  CopyMinus,
+  DownloadCloud,
+  ListChecks,
+  Loader2,
+  Quote,
+  Search,
+  Workflow,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import { useMemo } from "react";
 import type { Graph, StepStatus } from "@/lib/api";
 import type { StepState } from "@/lib/useRun";
@@ -39,8 +51,19 @@ function StatusIcon({ status }: { status: StepStatus }) {
   return <span className="size-2 rounded-full bg-line" />;
 }
 
-function StepNode({ data }: NodeProps<StepNodeType>) {
+const STEP_ICONS: Record<string, LucideIcon> = {
+  plan: Workflow,
+  discover: Search,
+  fetch: DownloadCloud,
+  extract: Quote,
+  validate: ListChecks,
+  dedupe: CopyMinus,
+  verify: BadgeCheck,
+};
+
+function StepNode({ id, data }: NodeProps<StepNodeType>) {
   const status = data.state?.status ?? "idle";
+  const Icon = STEP_ICONS[id] ?? Workflow;
   const counts = data.state?.counts;
   const detail =
     data.state?.message ?? (counts ? Object.entries(counts).map(([k, v]) => `${v} ${k}`).join(" · ") : "");
@@ -51,7 +74,10 @@ function StepNode({ data }: NodeProps<StepNodeType>) {
       {data.hasLoopOut && <Handle id="loop-out" type="source" position={Position.Bottom} className="!opacity-0" />}
       {data.hasLoopIn && <Handle id="loop-in" type="target" position={Position.Bottom} className="!opacity-0" />}
       <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold">{data.label}</span>
+        <span className="inline-flex items-center gap-1.5 text-sm font-semibold">
+          <Icon className={`size-3.5 ${status === "idle" ? "text-muted" : "text-accent"}`} />
+          {data.label}
+        </span>
         <StatusIcon status={status} />
       </div>
       <p className="mt-0.5 text-[11px] leading-snug text-muted line-clamp-2">{detail || data.description}</p>
@@ -127,7 +153,7 @@ export function RunGraph({
   );
 
   return (
-    <div className="h-[230px] rounded-xl border border-line bg-panel">
+    <div className="h-[230px] card">
       <ReactFlow
         nodes={nodes}
         edges={edges}

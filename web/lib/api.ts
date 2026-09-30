@@ -1,3 +1,5 @@
+import { ensureAwake, markUnreachable } from "./backend";
+
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
 export type RunStatus = "queued" | "running" | "done" | "failed" | "cancelled";
@@ -99,11 +101,26 @@ export interface RunEvent {
 interface RunStarted { run_id: number; workflow_id: number }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`, {
-    ...init,
-    headers: { "content-type": "application/json", ...init?.headers },
-    cache: "no-store",
-  });
+  await ensureAwake();
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}${path}`, {
+      ...init,
+      headers: { "content-type": "application/json", ...init?.headers },
+      cache: "no-store",
+    });
+  } catch (e) {
+    // Network failure: the server may have gone back to sleep. Wake it, and retry
+    // reads once (never writes, which might already have reached the server).
+    markUnreachable();
+    await ensureAwake();
+    if ((init?.method ?? "GET") !== "GET") throw e;
+    res = await fetch(`${API_URL}${path}`, {
+      ...init,
+      headers: { "content-type": "application/json", ...init?.headers },
+      cache: "no-store",
+    });
+  }
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.detail ?? `${res.status} ${res.statusText}`);

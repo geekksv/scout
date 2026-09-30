@@ -23,7 +23,7 @@ export default function RunsPage() {
         <p className="text-sm text-muted">Every workflow run, newest first. Open one to re-run it, replay it or compare it with its previous run.</p>
       </div>
       {error && <p className="text-sm text-err">{error}</p>}
-      <div className="overflow-hidden rounded-xl border border-line bg-panel">
+      <div className="overflow-hidden card">
         <table className="w-full text-sm">
           <thead className="bg-panel-2 text-left text-xs text-muted">
             <tr>

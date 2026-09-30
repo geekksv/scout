@@ -10,7 +10,7 @@ const input =
 
 function Section({ title, hint, children }: { title: string; hint: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-xl border border-line bg-panel p-4">
+    <section className="card p-4">
       <h2 className="text-sm font-semibold">{title}</h2>
       <p className="mb-3 text-xs text-muted">{hint}</p>
       {children}
@@ -85,7 +85,7 @@ export default function PlanPage() {
     return error ? (
       <p className="rounded-lg border border-err bg-err-soft p-4 text-sm text-err">{error}</p>
     ) : (
-      <div className="h-96 animate-pulse rounded-xl border border-line bg-panel" />
+      <div className="h-96 animate-pulse card" />
     );
   }
 
@@ -249,7 +249,7 @@ export default function PlanPage() {
         <button
           onClick={run}
           disabled={starting}
-          className="inline-flex items-center gap-2 rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-white disabled:opacity-50"
+          className="brand-gradient inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-semibold text-accent-fg shadow-sm transition hover:brightness-110 disabled:opacity-50"
         >
           {starting ? <Loader2 className="size-4 animate-spin" /> : <ArrowRight className="size-4" />}
           Run workflow

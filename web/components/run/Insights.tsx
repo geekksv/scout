@@ -19,7 +19,7 @@ function Bar({ label, value, total, color }: { label: string; value: number; tot
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-line bg-panel p-4">
+    <div className="card p-4">
       <h3 className="mb-3 text-sm font-medium">{title}</h3>
       <div className="space-y-2.5">{children}</div>
     </div>

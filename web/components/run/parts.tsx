@@ -1,5 +1,15 @@
 "use client";
 
+import {
+  BadgeCheck,
+  FileText,
+  Globe,
+  Merge,
+  Rows3,
+  ShieldBan,
+  ShieldX,
+  type LucideIcon,
+} from "lucide-react";
 import { useEffect, useRef } from "react";
 import type { RecordStatus, RunStatus, Source } from "@/lib/api";
 import type { LogLine } from "@/lib/useRun";
@@ -32,23 +42,26 @@ export function RecordStatusPill({ status }: { status: RecordStatus }) {
   return <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium ${cls}`}>{label}</span>;
 }
 
-const STAT_LABELS: [string, string, string][] = [
-  ["sources", "Sources found", ""],
-  ["fetched", "Pages fetched", ""],
-  ["blocked", "Blocked by robots", ""],
-  ["raw", "Raw rows", ""],
-  ["duplicates", "Duplicates merged", ""],
-  ["rejected", "Unproven values dropped", "text-warn"],
-  ["clean", "Clean rows", "text-accent"],
+const STATS: { key: string; label: string; icon: LucideIcon; tone: string }[] = [
+  { key: "sources", label: "Sources found", icon: Globe, tone: "text-accent-2" },
+  { key: "fetched", label: "Pages fetched", icon: FileText, tone: "text-accent-2" },
+  { key: "blocked", label: "Blocked by robots", icon: ShieldBan, tone: "text-err" },
+  { key: "raw", label: "Raw rows", icon: Rows3, tone: "text-muted" },
+  { key: "duplicates", label: "Duplicates merged", icon: Merge, tone: "text-muted" },
+  { key: "rejected", label: "Unproven values dropped", icon: ShieldX, tone: "text-warn" },
+  { key: "clean", label: "Clean rows", icon: BadgeCheck, tone: "text-ok" },
 ];
 
 export function StatsBar({ stats }: { stats: Record<string, number> }) {
   return (
     <div className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-4 lg:grid-cols-7">
-      {STAT_LABELS.map(([key, label, tone]) => (
+      {STATS.map(({ key, label, icon: Icon, tone }) => (
         <div key={key} className="bg-panel px-4 py-3">
-          <div className={`text-2xl font-semibold tabular-nums ${tone}`}>
-            {stats[key] ?? 0}
+          <div className="flex items-center justify-between">
+            <span className={`text-2xl font-semibold tabular-nums ${key === "clean" ? "brand-text" : ""}`}>
+              {stats[key] ?? 0}
+            </span>
+            <Icon className={`size-4 ${tone}`} />
           </div>
           <div className="text-xs text-muted">{label}</div>
         </div>
@@ -65,7 +78,7 @@ export function LogPanel({ logs }: { logs: LogLine[] }) {
     ref.current?.scrollTo({ top: ref.current.scrollHeight });
   }, [logs.length]);
   return (
-    <div className="flex h-full min-h-0 flex-col rounded-xl border border-line bg-panel">
+    <div className="flex h-full min-h-0 flex-col card">
       <div className="border-b border-line px-4 py-2 text-sm font-medium">Activity</div>
       <div ref={ref} className="flex-1 min-h-0 overflow-y-auto px-4 py-2 font-mono text-[12px] leading-relaxed">
         {logs.length === 0 && <p className="text-muted">Waiting for the first event…</p>}

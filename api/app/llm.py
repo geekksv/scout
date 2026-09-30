@@ -148,6 +148,13 @@ async def complete_json(
         except (APIConnectionError, json.JSONDecodeError) as e:
             log.warning("LLM call failed (%s), retrying in %.1fs", type(e).__name__, delay)
         except APIStatusError as e:
+            if e.status_code == 400 and "json_validate_failed" in str(e) and len(chain) > 1:
+                # Usually the answer was cut off at max_tokens. Give the next model
+                # this turn, with more room to finish the JSON.
+                log.warning("Invalid JSON from %s, retrying on the next model", current)
+                chain = [m for m in chain if m != current] + [current]
+                max_tokens = min(max_tokens * 2, 16000)
+                continue
             if e.status_code < 500:
                 raise LLMError(f"Groq error {e.status_code}: {e.message}") from e
         if attempt == retries:

@@ -73,3 +73,21 @@ def test_robots_rules(status, body, url, expected):
             return await robots.is_allowed(url, client)
 
     assert asyncio.run(check()) is expected
+
+
+def test_relevance_filter_drops_generic_search_padding():
+    from app.pipeline.discover import is_relevant, topic_terms
+
+    intent = Intent.model_validate({
+        "entity": "AI startup", "fields": [{"name": "name"}], "queries": ["q"],
+        "filters": ["located in Bangalore", "operates in AI sector"],
+    })
+    topic = topic_terms(intent)
+    good = {"title": "Top 30 AI startups in Bengaluru 2026", "snippet": "", "url": "https://inc42.com/x"}
+    assert is_relevant(good, topic)
+    for junk in (
+        {"title": "List - Wikipedia", "snippet": "A list is a set of items", "url": "https://en.wikipedia.org/wiki/List"},
+        {"title": "Microsoft Lists", "snippet": "Track information", "url": "https://microsoft.com/lists"},
+        {"title": "Bengaluru - Wikipedia", "snippet": "capital of Karnataka", "url": "https://en.wikipedia.org/wiki/Bengaluru"},
+    ):
+        assert not is_relevant(junk, topic), junk["title"]

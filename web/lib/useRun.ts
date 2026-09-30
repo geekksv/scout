@@ -9,6 +9,7 @@ import {
   type RunStatus,
   type StepStatus,
 } from "./api";
+import { ensureAwake } from "./backend";
 
 export interface StepState {
   status: StepStatus;
@@ -114,15 +115,26 @@ export function useRun(runId: number) {
   useEffect(() => {
     if (!Number.isFinite(runId)) return;
     dispatch({ kind: "reset" });
-    const es = new EventSource(api.eventsUrl(runId));
-    es.onopen = () => dispatch({ kind: "connected", value: true });
-    es.onmessage = (m) => dispatch({ kind: "event", evt: JSON.parse(m.data) });
-    es.addEventListener("end", () => {
-      dispatch({ kind: "connected", value: false });
-      es.close();
-    });
-    es.onerror = () => dispatch({ kind: "connected", value: false });
-    return () => es.close();
+    let es: EventSource | null = null;
+    let cancelled = false;
+    // Open the live stream only once the (possibly sleeping) server is awake.
+    ensureAwake()
+      .then(() => {
+        if (cancelled) return;
+        es = new EventSource(api.eventsUrl(runId));
+        es.onopen = () => dispatch({ kind: "connected", value: true });
+        es.onmessage = (m) => dispatch({ kind: "event", evt: JSON.parse(m.data) });
+        es.addEventListener("end", () => {
+          dispatch({ kind: "connected", value: false });
+          es?.close();
+        });
+        es.onerror = () => dispatch({ kind: "connected", value: false });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+      es?.close();
+    };
   }, [runId]);
 
   return state;
