@@ -15,6 +15,7 @@ from . import llm
 from .config import BROWSER_ENABLED, CORS_ORIGIN_REGEX, CORS_ORIGINS, REMOTE_RENDER, GROQ_API_KEY, GROQ_FAST_MODEL, GROQ_MODEL, SCREENSHOT_DIR
 from .db import IS_SQLITE, engine, get_session, init_db
 from .services import evidence, export
+from .services.search import provider as search_provider
 from .events import emit as _emit, subscribe
 from .models import Provenance, Record, Run, ScreenshotBlob, Source, Workflow
 from .pipeline import orchestrator
@@ -71,6 +72,7 @@ def health():
                 "configured": bool(GROQ_API_KEY)},
         "database": "sqlite" if IS_SQLITE else "postgres",
         "renderer": "browser" if BROWSER_ENABLED else ("remote" if REMOTE_RENDER else "none"),
+        "search": search_provider(),
     }
 
 

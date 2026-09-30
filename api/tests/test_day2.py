@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os
 import tempfile
 
@@ -142,3 +143,25 @@ def test_discover_tops_up_when_search_returns_mostly_off_topic(monkeypatch):
     urls = [s.url for s in sources]
     assert urls[0] == "https://good.test/list"  # on-topic first
     assert len(urls) == 13  # topped up instead of returning one source
+
+
+def test_tavily_used_when_key_set(monkeypatch, tmp_path):
+    from app.services import search as search_mod
+
+    seen = {}
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        seen["auth"] = req.headers.get("authorization")
+        seen["body"] = json.loads(req.content)
+        return httpx.Response(200, json={"results": [
+            {"title": "Top AI startups in Bengaluru", "url": "https://inc42.com/list", "content": "..."}]})
+
+    real_client = httpx.AsyncClient
+    monkeypatch.setattr(search_mod, "TAVILY_API_KEY", "tvly-test")
+    monkeypatch.setattr(search_mod, "_CACHE", tmp_path)
+    monkeypatch.setattr(search_mod.httpx, "AsyncClient",
+                        lambda **kw: real_client(transport=httpx.MockTransport(handler), **kw))
+    out = asyncio.run(search_mod.search("ai startups bangalore", 5, "in-en"))
+    assert out == [{"title": "Top AI startups in Bengaluru", "url": "https://inc42.com/list", "snippet": "..."}]
+    assert seen["auth"] == "Bearer tvly-test"
+    assert seen["body"]["country"] == "india" and seen["body"]["max_results"] == 5

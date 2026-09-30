@@ -40,6 +40,8 @@ JINA_API_KEY = os.getenv("JINA_API_KEY", "")
 
 # Search engines behind ddgs. "auto" mixes in Wikipedia and others that pad results.
 SEARCH_ENGINES = os.getenv("SEARCH_ENGINES", "duckduckgo,yahoo,brave,bing")
+# Tavily search API (free key, 1,000 searches/month): reliable from cloud servers.
+TAVILY_API_KEY = os.getenv("TAVILY_API_KEY", "")
 
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3100").split(",")
 # e.g. https://.*\.vercel\.app so every Vercel preview deployment can reach the API
