@@ -11,6 +11,7 @@ An AI-powered data intelligence platform that turns a plain-English request into
 
 [![Live demo](https://img.shields.io/badge/live%20demo-scout--online.vercel.app-2dd4bf?style=for-the-badge)](https://scout-online.vercel.app)
 [![Demo video](https://img.shields.io/badge/demo%20video-MP4-38bdf8?style=for-the-badge)](docs/scout-demo.mp4)
+[![Pitch deck](https://img.shields.io/badge/pitch%20deck-PPTX-94a3b8?style=for-the-badge)](docs/Scout-Pitch-Deck.pptx)
 
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.141-009688?logo=fastapi&logoColor=white)
