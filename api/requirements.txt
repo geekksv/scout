@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+sqlmodel
+sse-starlette
+groq
+python-dotenv
+httpx
+pydantic
+pytest
+ddgs
+trafilatura
+rapidfuzz
+openpyxl
+playwright
