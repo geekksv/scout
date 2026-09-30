@@ -15,6 +15,7 @@ from ..services.search import normalize_url, search
 from .plan import Intent
 
 MAX_SOURCES = 25
+MIN_RELEVANT = 8
 RESULTS_PER_QUERY = 10
 
 # Sites whose terms forbid automated collection, or that need a login.
@@ -77,6 +78,7 @@ async def discover(
     meta: dict[str, dict] = {}
     skipped_blocked = skipped_irrelevant = 0
     topic = topic_terms(intent)
+    off_topic_examples: list[str] = []
     for q in queries:
         emit(run_id, "log", "discover", level="info", message=f'Searching: "{q}"')
         results = await search(q, RESULTS_PER_QUERY, intent.region)
@@ -89,14 +91,21 @@ async def discover(
             if is_blocked(domain_of(url), blocked):
                 skipped_blocked += 1
                 continue
-            if not is_relevant(r, topic):
+            relevant = is_relevant(r, topic)
+            if not relevant:
                 skipped_irrelevant += 1
-                continue
-            hits[url] += 1
+                if len(off_topic_examples) < 3:
+                    off_topic_examples.append(r.get("title", "")[:60] or domain_of(url))
+            hits[url] += 1 if relevant else 0  # off-topic pages stay candidates, ranked last
             best_rank[url] = min(best_rank.get(url, rank), rank)
             meta.setdefault(url, r)
 
-    ranked = sorted(hits, key=lambda u: (-hits[u], best_rank[u]))
+    ranked = sorted((u for u in hits if hits[u] > 0), key=lambda u: (-hits[u], best_rank[u]))
+    # Some search engines answer cloud servers with mostly generic pages. Rather than
+    # fail, top up with the best remaining results; the quote check still guards the data.
+    if len(ranked) < MIN_RELEVANT:
+        extra = sorted((u for u in best_rank if u not in ranked), key=best_rank.get)
+        ranked += extra[: MAX_SOURCES - len(ranked)]
     # Keep the source list diverse: at most 3 pages per domain.
     per_domain: dict[str, int] = defaultdict(int)
     chosen = []
@@ -112,8 +121,10 @@ async def discover(
         emit(run_id, "log", "discover", level="info",
              message=f"Skipped {skipped_blocked} results from blocked or login-only sites")
     if skipped_irrelevant:
+        kept_note = " (kept some anyway: too few on-topic results)" if len(ranked) and any(
+            hits.get(u, 0) == 0 for u in ranked) else ""
         emit(run_id, "log", "discover", level="info",
-             message=f"Skipped {skipped_irrelevant} off-topic results")
+             message=f"Off-topic results: {skipped_irrelevant}, e.g. {'; '.join(off_topic_examples)}{kept_note}")
 
     async with robots.new_client() as client:
         allowed = await asyncio.gather(*(robots.is_allowed(u, client) for u in chosen))

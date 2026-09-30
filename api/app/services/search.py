@@ -44,14 +44,21 @@ async def search(query: str, max_results: int = 10, region: str = "wt-wt") -> li
     if path.exists():
         return json.loads(path.read_text(encoding="utf-8"))
 
+    raw: list[dict] = []
     async with _lock:
-        try:
-            raw = await asyncio.to_thread(lambda: DDGS().text(
-                query, max_results=max_results, region=region, backend=SEARCH_ENGINES))
-        except Exception as e:  # ddgs raises its own types for rate limits and timeouts
-            log.warning("search failed for %r: %s", query, e)
-            return []
-        await asyncio.sleep(1.0)
+        # Preferred engines first; if they refuse (common from cloud IPs), let ddgs pick any.
+        for backend in dict.fromkeys([SEARCH_ENGINES, "auto"]):
+            try:
+                raw = await asyncio.to_thread(lambda b=backend: DDGS().text(
+                    query, max_results=max_results, region=region, backend=b))
+            except Exception as e:  # ddgs raises its own types for rate limits and timeouts
+                log.warning("search via %s failed for %r: %s", backend, query, e)
+                raw = []
+            await asyncio.sleep(1.0)
+            if raw:
+                break
+    if not raw:
+        return []
 
     results = [
         {"title": r.get("title", ""), "url": r["href"], "snippet": r.get("body", "")}

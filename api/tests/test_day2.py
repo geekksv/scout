@@ -112,3 +112,33 @@ def test_generated_plan_only_requires_identifying_field(monkeypatch):
     edited = Intent.model_validate({**intent.model_dump(), "fields": [
         {"name": "name"}, {"name": "website", "type": "url", "required": True}]})
     assert [f.required for f in edited.fields] == [True, True]
+
+
+def test_discover_tops_up_when_search_returns_mostly_off_topic(monkeypatch):
+    from app.pipeline import discover as disc
+
+    intent = Intent.model_validate({
+        "entity": "AI startup", "fields": [{"name": "name"}], "queries": ["q1"],
+        "filters": ["located in Bangalore"],
+    })
+    results = [{"title": "Top AI startups in Bangalore", "url": "https://good.test/list", "snippet": ""}] + [
+        {"title": f"Generic page {i}", "url": f"https://junk{i}.test/", "snippet": ""} for i in range(12)]
+
+    async def fake_search(*_a, **_k):
+        return results
+
+    async def allow(*_a, **_k):
+        return True
+
+    monkeypatch.setattr(disc, "search", fake_search)
+    monkeypatch.setattr(disc.robots, "is_allowed", allow)
+    monkeypatch.setattr(disc, "emit", lambda *a, **k: None)
+
+    from fastapi.testclient import TestClient
+    from app.main import app
+    with TestClient(app) as client:
+        run_id = client.post("/api/runs", json={"prompt": "x"}).json()["run_id"]
+    sources = asyncio.run(disc.discover(run_id, intent, ["q1"], set(), {}))
+    urls = [s.url for s in sources]
+    assert urls[0] == "https://good.test/list"  # on-topic first
+    assert len(urls) == 13  # topped up instead of returning one source
