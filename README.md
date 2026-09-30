@@ -79,6 +79,25 @@ Notes
 - Models are set in `api/.env` (`GROQ_MODEL`, `GROQ_FAST_MODEL`). Set `NEXT_PUBLIC_API_URL` if the API is not on `http://localhost:8000`.
 - The **Demo run** button on the home page plays a scripted run with fictional companies on `example.com` domains — useful without a key or network.
 
+## Deploy (free)
+
+**Backend → Hugging Face Spaces (Docker, free CPU tier).** Scout needs a real browser for JavaScript pages and screenshots, and Spaces gives enough memory for one; most other free tiers (512 MB) do not.
+1. Create a Space at huggingface.co/new-space → SDK **Docker** → Blank → Public.
+2. Upload the contents of `api/` (with `Dockerfile`) to the Space. The Space's `README.md` must start with:
+   ```yaml
+   ---
+   title: Scout API
+   sdk: docker
+   app_port: 7860
+   ---
+   ```
+3. Space → Settings → **Secrets**: `GROQ_API_KEY`. **Variables**: `CORS_ORIGIN_REGEX` = `https://.*\.vercel\.app`.
+4. After the build, check `https://<user>-<space>.hf.space/api/health`.
+
+**Frontend → Vercel (Hobby, free).** Import the GitHub repo → Root Directory **`web`** → env var `NEXT_PUBLIC_API_URL` = your Space URL → Deploy.
+
+Notes: the free Space sleeps after inactivity (the first request wakes it) and its SQLite database resets on restart. That's fine for judging, but for the live stage demo, run locally and use **Replay**.
+
 ## Tests
 
 ```bash

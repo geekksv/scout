@@ -22,3 +22,5 @@ GROQ_FAST_MODEL = os.getenv("GROQ_FAST_MODEL", "qwen/qwen3.8-27b")
 LLM_CONCURRENCY = int(os.getenv("LLM_CONCURRENCY", "3"))
 
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3100").split(",")
+# e.g. https://.*\.vercel\.app so every Vercel preview deployment can reach the API
+CORS_ORIGIN_REGEX = os.getenv("CORS_ORIGIN_REGEX") or None

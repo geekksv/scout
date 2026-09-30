@@ -1,0 +1,6 @@
+.venv
+.env
+apis.txt
+tests
+__pycache__
+*.pyc

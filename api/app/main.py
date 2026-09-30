@@ -11,7 +11,7 @@ from sqlmodel import Session, col, select
 from sse_starlette.sse import EventSourceResponse
 
 from . import llm
-from .config import CORS_ORIGINS, GROQ_API_KEY, GROQ_FAST_MODEL, GROQ_MODEL, SCREENSHOT_DIR
+from .config import CORS_ORIGIN_REGEX, CORS_ORIGINS, GROQ_API_KEY, GROQ_FAST_MODEL, GROQ_MODEL, SCREENSHOT_DIR
 from .db import engine, get_session, init_db
 from .services import evidence, export
 from .events import emit as _emit, subscribe
@@ -44,7 +44,8 @@ async def lifespan(_app: FastAPI):
 
 app = FastAPI(title="Scout API", lifespan=lifespan)
 app.add_middleware(
-    CORSMiddleware, allow_origins=CORS_ORIGINS, allow_methods=["*"], allow_headers=["*"]
+    CORSMiddleware, allow_origins=CORS_ORIGINS, allow_origin_regex=CORS_ORIGIN_REGEX,
+    allow_methods=["*"], allow_headers=["*"],
 )
 app.mount("/files/screenshots", StaticFiles(directory=SCREENSHOT_DIR), name="screenshots")
 
